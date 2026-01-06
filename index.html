@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Status Board</title>
+    <title>Waar studeer je?</title>
     <style>
         body { font-family: sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
         
@@ -183,10 +183,6 @@
             }
 
             // 2. Confirm action
-            if (!confirm(`Are you sure you want to delete the note for "${nameVal}"?`)) {
-                return;
-            }
-
             btn.textContent = "Deleting...";
             btn.disabled = true;
 
