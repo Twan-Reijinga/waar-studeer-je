@@ -46,7 +46,7 @@
         
         <div class="input-group">
             <label for="nameInput">Naam:</label>
-            <input type="text" id="nameInput" placeholder="Belangrijk: hou je naam exact hetzelfde!" required>
+            <input type="text" id="nameInput" placeholder="Belangrijk! hou dit het zelfde!" required>
         </div>
 
         <div class="input-group">
@@ -59,8 +59,10 @@
             <label for="LeavingInput">Ik zit hier tot:</label>
             <textarea id="LeavingInput" placeholder="eindtijd" rows="2" required></textarea>
         </div>
-
-        <button type="submit">Update</button>
+        <div class="btn-group">
+            <button type="submit" id="submitBtn">Update Status</button>
+            <button type="button" id="deleteBtn">Delete User</button>
+        </div>
     </form>
 
     <h3 class="form-header">Ik zit hier!</h3>
@@ -166,6 +168,44 @@
             }
 
             btn.textContent = "Update Status";
+            btn.disabled = false;
+        });
+
+        document.getElementById('deleteBtn').addEventListener('click', async () => {
+            const nameVal = document.getElementById('nameInput').value.trim();
+            const btn = document.getElementById('deleteBtn');
+
+            // 1. Check if name is typed
+            if (!nameVal) {
+                alert("Please enter the Name you want to delete.");
+                document.getElementById('nameInput').focus();
+                return;
+            }
+
+            // 2. Confirm action
+            if (!confirm(`Are you sure you want to delete the note for "${nameVal}"?`)) {
+                return;
+            }
+
+            btn.textContent = "Deleting...";
+            btn.disabled = true;
+
+            // 3. Delete from Supabase
+            const { error } = await client
+                .from('place')
+                .delete()
+                .eq('name', nameVal);
+
+            if (error) {
+                alert("Error deleting note.");
+                console.error(error);
+            } else {
+                // Success
+                document.getElementById('noteForm').reset();
+                fetchNotes();
+            }
+
+            btn.textContent = "Delete User";
             btn.disabled = false;
         });
 
