@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Status Board</title>
+    <style>
+        body { font-family: sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+        
+        /* Form Styling */
+        form { background: #f0f4f8; padding: 20px; border-radius: 8px; margin-bottom: 30px; border: 1px solid #dceefb; }
+        .form-header { margin-top: 0; color: #205d86; }
+        .input-group { margin-bottom: 10px; display: flex; flex-direction: column; }
+        label { font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; }
+        input, textarea { padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-family: inherit; }
+        
+        button { background: #0077cc; color: white; padding: 10px 20px; border: none; cursor: pointer; border-radius: 4px; margin-top: 10px; font-weight: bold;}
+        button:hover { background: #005fa3; }
+
+        /* Table Styling */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background-color: #333; color: white; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.05em; }
+        tr:hover { background-color: #fafafa; }
+        
+        /* Column Widths */
+        .col-time { width: 20%; color: #666; font-size: 0.9rem; }
+        .col-name { width: 25%; font-weight: bold; color: #333; }
+        .col-note { width: 55%; }
+
+        /* Mobile Responsive */
+        @media (max-width: 600px) {
+            th { display: none; } /* Hide headers on mobile */
+            td { display: block; width: 100%; padding: 5px 15px; border: none; }
+            .col-time { font-size: 0.8rem; color: #888; padding-top: 15px; }
+            .col-note { padding-bottom: 15px; border-bottom: 1px solid #eee; }
+        }
+    </style>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <h1>Waar studeer je?</h1>
+
+    <form id="noteForm">
+        
+        <div class="input-group">
+            <label for="nameInput">Naam:</label>
+            <input type="text" id="nameInput" placeholder="e.g. Sarah" required>
+        </div>
+
+        <div class="input-group">
+            <label for="noteInput">Plek:</label>
+            <textarea id="noteInput" placeholder="plek" rows="2" required></textarea>
+        </div>
+
+
+        <div class="input-group">
+            <label for="LeavingInput">Ik zit hier tot:</label>
+            <textarea id="LeavingInput" placeholder="eindtijd" rows="2" required></textarea>
+        </div>
+
+        <button type="submit">Update</button>
+    </form>
+
+    <h3 class="form-header">Ik zit hier!</h3>
+    <table>
+        <thead>
+            <tr>
+                <th class="col-time">Laaste update</th>
+                <th class="col-name">Naam</th>
+                <th class="col-note">Plek</th>
+                <th class="col-tot">Tot</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+            <tr><td colspan="3">Loading...</td></tr>
+        </tbody>
+    </table>
+
+    <script>
+        // --- CREDENTIALS ---
+        const SUPABASE_URL = 'https://tqtxgsaclkwabrcvxyfn.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_Uwwjqnhbz09eKoBGfGkgnQ_D20Yrdey';
+        // -------------------
+
+        const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const tableBody = document.getElementById('tableBody');
+
+        // Helper: Format Date
+        function formatTime(isoString) {
+            const date = new Date(isoString);
+            return date.toLocaleString('en-US', { 
+                month: 'short', day: 'numeric', 
+                hour: '2-digit', minute: '2-digit' 
+            });
+        }
+
+        async function fetchNotes() {
+            // Fetch all notes, ordered by when they were updated
+            const { data, error } = await client
+                .from('place')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error(error);
+                tableBody.innerHTML = `<tr><td colspan="3" style="color:red">Error loading data.</td></tr>`;
+                return;
+            }
+
+            tableBody.innerHTML = '';
+
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                
+                // Sanitize HTML
+                const safeName = (row.name || "Anon").replace(/</g, "&lt;");
+                const safeNote = row.place.replace(/</g, "&lt;");
+                const safeLeaving = row.leaving.replace(/</g, "&lt;");
+                const timeString = formatTime(row.created_at);
+
+                tr.innerHTML = `
+                    <td class="col-time">${timeString}</td>
+                    <td class="col-name">${safeName}</td>
+                    <td class="col-note">${safeNote}</td>
+                    <td class="col-tot">${safeLeaving}</td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        }
+
+        document.getElementById('noteForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const nameVal = document.getElementById('nameInput').value.trim();
+            const noteVal = document.getElementById('noteInput').value;
+            const totVal = document.getElementById('LeavingInput').value;
+            const btn = e.target.querySelector('button');
+
+            btn.textContent = "Updating...";
+            btn.disabled = true;
+
+            // UPSERT MAGIC:
+            // This looks for a row with this 'name'. 
+            // If found -> Update 'content' and 'created_at'.
+            // If not found -> Insert new row.
+            const { error } = await client
+                .from('place')
+                .upsert(
+                    { 
+                        name: nameVal, 
+                        place: noteVal,
+                        created_at: new Date(), // Force update timestampnotes
+                        leaving: totVal,
+                    }, 
+                    { onConflict: 'name' } // This field MUST be Unique in DB
+                );
+
+            if (error) {
+                alert('Error! Did you set the Name column to "Unique" in Supabase?');
+                console.error(error);
+            } else {
+                document.getElementById('noteInput').value = ''; // Clear note only
+                document.getElementById('LeavingInput').value = ''; // Clear note only
+                fetchNotes();
+            }
+
+            btn.textContent = "Update Status";
+            btn.disabled = false;
+        });
+
+        fetchNotes();
+    </script>
+</body>
+</html>
