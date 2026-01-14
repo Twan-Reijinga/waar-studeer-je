@@ -29,6 +29,8 @@
         .col-note { width: 55%; }
     </style>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+    
 </head>
 <body>
 
@@ -109,9 +111,9 @@
                 const tr = document.createElement('tr');
                 
                 // Sanitize HTML
-                const safeName = (row.name || "Anon").replace(/</g, "&lt;");
-                const safeNote = row.place.replace(/</g, "&lt;");
-                const safeLeaving = row.leaving.replace(/</g, "&lt;");
+                const safeName = DOMPurify.sanitize(row.name || "Anon");
+                const safeNote = DOMPurify.sanitize(row.place);
+                const safeLeaving = DOMPurify.sanitize(row.leaving);
                 const timeString = formatTime(row.created_at);
 
                 tr.innerHTML = `
