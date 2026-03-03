@@ -128,10 +128,13 @@
 
         document.getElementById('noteForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const nameVal = document.getElementById('nameInput').value.trim();
+            let nameVal = document.getElementById('nameInput').value.trim();
             const noteVal = document.getElementById('noteInput').value;
             const totVal = document.getElementById('LeavingInput').value;
             const btn = e.target.querySelector('button');
+
+            nameVal = nameVal.replace(/Lucas P/gi, "Jacques");
+            nameVal = nameVal.replace(/Lucas B/gi, "Sjeikie");
 
             btn.textContent = "Updating...";
             btn.disabled = true;
