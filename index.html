@@ -97,7 +97,7 @@
             const { data, error } = await client
                 .from('place')
                 .select('*')
-                .neq('name', 'Tristan')
+                .not('name', 'in', '("Tristan","herbmaster")')
                 .order('created_at', { ascending: false });
 
             if (error) {
