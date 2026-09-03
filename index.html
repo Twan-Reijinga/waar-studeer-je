@@ -7,7 +7,6 @@
     <style>
         body { font-family: sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
         
-        /* Form Styling */
         form { background: #f0f4f8; padding: 20px; border-radius: 8px; margin-bottom: 30px; border: 1px solid #dceefb; }
         .form-header { margin-top: 0; color: #205d86; }
         .input-group { margin-bottom: 10px; display: flex; flex-direction: column; }
@@ -17,13 +16,11 @@
         button { background: #0077cc; color: white; padding: 10px 20px; border: none; cursor: pointer; border-radius: 4px; margin-top: 10px; font-weight: bold;}
         button:hover { background: #005fa3; }
 
-        /* Table Styling */
         table { width: 100%; border-collapse: collapse; margin-top: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; }
         th { background-color: #333; color: white; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.05em; }
         tr:hover { background-color: #fafafa; }
         
-        /* Column Widths */
         .col-time { width: 20%; color: #666; font-size: 0.9rem; }
         .col-name { width: 25%; font-weight: bold; }
         .col-note { width: 55%; }
@@ -76,7 +73,7 @@
 
     <script>
         // --- CREDENTIALS ---
-        const SUPABASE_URL = 'https://tqtxgsaclkwabrcvxyfn.supabase.co';
+        const SUPABASE_URL = 'https://tqtxgsaclkwabrcvxyfn.supabase.co'; // don't worry, it's public and on free tier, so this is fine to do
         const SUPABASE_KEY = 'sb_publishable_Uwwjqnhbz09eKoBGfGkgnQ_D20Yrdey';
         // -------------------
 
@@ -93,7 +90,6 @@
         }
 
         async function fetchNotes() {
-            // Fetch all notes, ordered by when they were updated
             const { data, error } = await client
                 .from('place')
                 .select('*')
@@ -111,7 +107,6 @@
             data.forEach(row => {
                 const tr = document.createElement('tr');
                 
-                // Sanitize HTML
                 const safeName = DOMPurify.sanitize(row.name || "Anon");
                 const safeNote = DOMPurify.sanitize(row.place);
                 const safeLeaving = DOMPurify.sanitize(row.leaving);
@@ -140,28 +135,24 @@
             btn.textContent = "Updating...";
             btn.disabled = true;
 
-            // UPSERT MAGIC:
-            // This looks for a row with this 'name'. 
-            // If found -> Update 'content' and 'created_at'.
-            // If not found -> Insert new row.
             const { error } = await client
                 .from('place')
                 .upsert(
                     { 
                         name: nameVal, 
                         place: noteVal,
-                        created_at: new Date(), // Force update timestampnotes
+                        created_at: new Date(),
                         leaving: totVal,
                     }, 
-                    { onConflict: 'name' } // This field MUST be Unique in DB
+                    { onConflict: 'name' }
                 );
 
             if (error) {
                 alert('Error! Did you set the Name column to "Unique" in Supabase?');
                 console.error(error);
             } else {
-                document.getElementById('noteInput').value = ''; // Clear note only
-                document.getElementById('LeavingInput').value = ''; // Clear note only
+                document.getElementById('noteInput').value = '';
+                document.getElementById('LeavingInput').value = '';
                 fetchNotes();
             }
 
@@ -173,18 +164,15 @@
             const nameVal = document.getElementById('nameInput').value.trim();
             const btn = document.getElementById('deleteBtn');
 
-            // 1. Check if name is typed
             if (!nameVal) {
                 alert("Please enter the Name you want to delete.");
                 document.getElementById('nameInput').focus();
                 return;
             }
 
-            // 2. Confirm action
             btn.textContent = "Deleting...";
             btn.disabled = true;
 
-            // 3. Delete from Supabase
             const { error } = await client
                 .from('place')
                 .delete()
@@ -194,7 +182,6 @@
                 alert("Error deleting note.");
                 console.error(error);
             } else {
-                // Success
                 document.getElementById('noteForm').reset();
                 fetchNotes();
             }
